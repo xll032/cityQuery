@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport'/>
+    <title>中国地区查询、三级联动</title>
+    <link rel="stylesheet" href="static/bootstrap.min.css">
+    <style>
+        li{
+            list-style: none;
+        }
+    </style>
+</head>
+<body>
+<div ng-app="query" ng-controller="myCtrl">
+    <div class="col-md-6 col-sm-6 col-lg-6 col-md-offset-3 col-sm-offset-3 col-lg-offset-3">
+        <div class="text-primary text-center"><label>省份城市查询</label></div>
+            <div class="col-xs-9">
+                <input class="form-control" type="text" placeholder="输入关键字" ng-model="val">
+            </div>
+            <div class="col-xs-3">
+                <button class="btn btn-primary _btn" ng-click="search()">查询</button>
+            </div>
+            <div class="clearfix"></div>
+            <table class="table table-responsive table-striped">
+                <caption class="text-center">查询结果：</caption>
+                <thead class="text-center"><tr><td>行政区域</td><td>地区名称</td></tr></thead>
+                <tr ng-repeat="i in searchArr">
+                    <td class="text-center">{{searchArr[$index][0]}}</td>
+                    <td class="text-center">{{searchArr[$index][1]}}</td>
+                </tr>
+            </table>
+    </div>
+    <div class="clearfix"></div>
+    <div class="col-md-6 col-sm-6 col-lg-6 col-md-offset-3 col-sm-offset-3 col-lg-offset-3">
+        <div class="text-primary text-center"><label>省市县三级联动</label></div>
+        <div class="col-xs-4">
+            <select name="province" id="province" class="form-control" ng-model="selectPro" ng-change="linkage('province')">
+                <option ng-repeat="option in province" value="{{option[0]}}">{{option[1]}}</option>
+            </select>
+        </div>
+        <div class="col-xs-4">
+            <select name="city" id="city" class="form-control" ng-model="selectCit" ng-change="linkage('city')">
+                <option ng-repeat="option in city" value="{{option[0]}}">{{option[1]}}</option>
+            </select>
+        </div>
+        <div class="col-xs-4">
+            <select name="county" id="county" class="form-control" ng-model="selectCou" ng-change="linkage('county')">
+                <option ng-repeat="option in county" value="{{option[0]}}">{{option[1]}}</option>
+            </select>
+        </div>
+        <table class="table table-responsive table-striped">
+            <caption class="text-center">查询结果：</caption>
+            <thead class="text-center"><tr><td>行政区域</td><td>地区名称</td></tr></thead>
+            <tr>
+                <td class="text-center">{{selectArea[0]}}</td>
+                <td class="text-center">{{selectArea[1]}}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+</body>
+<script src="static/jquery-1.12.4.js"></script>
+<script src="static/angular.min.js"></script>
+<script src="static/bootstrap.min.js"></script>
+<script src="cityQuery.min.js"></script>
+<script>
+        var app = angular.module('query',[]);
+        app.controller('myCtrl',function( $scope ){
+            $scope.searchArr = [];
+            $scope.selectArea = '';
+            $scope.search = function(){
+                var result = cityQuery($scope.val,'province','search');
+                if(!result.length){
+                    result = cityQuery($scope.val,'city','get');
+                }
+                $scope.searchArr = result;
+            };
+            document.addEventListener('keydown',function(e){
+                var ev = e || event;
+                if(ev.keyCode == 13){
+                    document.getElementsByClassName('_btn')[0].click();
+                }
+            },false);
+            //联动初始化
+            $scope.initial = function(){
+                $scope.province = cityQuery('','province','get');
+                $scope.city = cityQuery('11','province','linkage');
+                $scope.county = cityQuery('1101','city','linkage');
+                $scope.selectPro = $scope.province[0][0];
+                $scope.selectCit = $scope.city[0][0];
+                $scope.selectCou = $scope.county[0][0];
+                $scope.selectArea = [$scope.county[0][0],'北京市市辖区东城区'];
+            };
+            $scope.initial();
+            //调用联动
+            var pro,cit,cou;
+            $scope.linkage = function(area){
+                switch (area){
+                    case 'province':
+                        $scope.city = _linkage($scope.selectPro,area);
+                        $scope.selectCit = $scope.city[0][0];
+                        $scope.county = _linkage($scope.city[0][0],'city');
+                        $scope.selectCou = $scope.county[0][0];
+                        pro = _text('province',area);
+                        cit=$scope.city[0][1];
+                        cou=$scope.county[0][1];
+                        break;
+                    case 'city':
+                        $scope.county=_linkage($scope.selectCit,area);
+                        $scope.selectCou = $scope.county[0][0];
+                        cit=_text('city',area);
+                        cou=$scope.county[0][1];
+                        break;
+                    case 'county':
+                        cou = _text('county',area);
+                }
+                function _linkage(num,area){return cityQuery(num,area,'linkage');}
+                function _text(ar,area){ var _this = document.getElementById(ar);return (ar==area) ? _this.options[_this.selectedIndex].innerText : _this.options[0].innerText;}
+
+                $scope.selectArea = [$scope.selectCou,pro+cit+cou];
+            };
+        });
+</script>
+</html>
