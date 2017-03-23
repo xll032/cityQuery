@@ -5,6 +5,7 @@
     <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport'/>
     <title>中国地区查询、三级联动</title>
     <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://cdn.bootcss.com/angular.js/1.6.3/angular.min.js"></script>
 </head>
 <body>
 <div ng-app="query" ng-controller="myCtrl">
@@ -55,7 +56,6 @@
     </div>
 </div>
 </body>
-<script src="https://cdn.bootcss.com/angular.js/1.6.3/angular.min.js"></script>
 <script src="cityQuery.min.js"></script>
 <script>
         var app = angular.module('query',[]);
@@ -66,6 +66,9 @@
                 var result = cityQuery($scope.val,'province','search');
                 if(!result.length){
                     result = cityQuery($scope.val,'city','get');
+                    if(!result.length){
+                        result = cityQuery($scope.val,'city','get');
+                    }
                 }
                 $scope.searchArr = result;
             };
