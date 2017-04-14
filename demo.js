@@ -1,5 +1,5 @@
 var app = angular.module('query',[]);
-
+console.log(app);
 app.controller('myCtrl',function( $scope ){
 	$scope.searchArr = [];
 	$scope.selectArea = '';
