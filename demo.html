@@ -5,6 +5,7 @@
     <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport'/>
     <title>中国地区查询、三级联动</title>
     <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://cdn.bootcss.com/angular.js/1.6.3/angular.min.js"></script>
 </head>
 <body>
 <div ng-app="query" ng-controller="myCtrl">
@@ -30,17 +31,17 @@
     <div class="col-md-6 col-sm-6 col-lg-6 col-md-offset-3 col-sm-offset-3 col-lg-offset-3">
         <div class="text-primary text-center"><label>省市县三级联动</label></div>
         <div class="col-xs-4">
-            <select name="province" id="province" class="form-control" ng-model="selectPro" ng-change="linkage('province')">
+            <select title="省份/直辖市" name="province" id="province" class="form-control" ng-model="selectPro" ng-change="linkage('province')">
                 <option ng-repeat="option in province" value="{{option[0]}}">{{option[1]}}</option>
             </select>
         </div>
         <div class="col-xs-4">
-            <select name="city" id="city" class="form-control" ng-model="selectCit" ng-change="linkage('city')">
+            <select title="城市" name="city" id="city" class="form-control" ng-model="selectCit" ng-change="linkage('city')">
                 <option ng-repeat="option in city" value="{{option[0]}}">{{option[1]}}</option>
             </select>
         </div>
         <div class="col-xs-4">
-            <select name="county" id="county" class="form-control" ng-model="selectCou" ng-change="linkage('county')">
+            <select title="县市" name="county" id="county" class="form-control" ng-model="selectCou" ng-change="linkage('county')">
                 <option ng-repeat="option in county" value="{{option[0]}}">{{option[1]}}</option>
             </select>
         </div>
@@ -55,7 +56,100 @@
     </div>
 </div>
 </body>
-<script src="https://cdn.bootcss.com/angular.js/1.6.3/angular.min.js"></script>
-<script src="cityQuery.min.js"></script>
-<script src="demo.js"></script>
+<script src="cityQuery.2.0.js"></script>
+<script>
+        var app = angular.module('query',[]);
+        app.controller('myCtrl',function( $scope ){
+            $scope.searchArr = [];
+            $scope.selectArea = '';
+            $scope.search = function(){
+                var result = cityQuery($scope.val,'province','search');
+                if(!result.length){
+                    result = cityQuery($scope.val,'city','get');
+                    if(!result.length){
+                        result = cityQuery($scope.val,'city','get');
+                    }
+                }
+                $scope.searchArr = result;
+            };
+            document.addEventListener('keydown',function(e){
+                var ev = e || event;
+                if(ev.keyCode == 13){
+                    document.getElementsByClassName('_btn')[0].click();
+                }
+            },false);
+            //联动初始化
+            $scope.initial = function(){
+                $scope.province = cityQuery('','province','get');
+                $scope.city = cityQuery('11','province','linkage');
+                $scope.county = cityQuery('1101','city','linkage');
+                $scope.selectPro = $scope.province[0][0];
+                $scope.selectCit = $scope.city[0][0];
+                $scope.selectCou = $scope.county[0][0];
+                $scope.selectArea = [$scope.county[0][0],'北京市市辖区东城区'];
+            };
+            $scope.initial();
+            //调用联动
+            var pro,cit,cou;
+            $scope.linkage = function(area){
+                switch (area){
+                    case 'province':
+                        $scope.city = _linkage($scope.selectPro,area);
+                        $scope.selectCit = $scope.city[0][0];
+                        $scope.county = _linkage($scope.city[0][0],'city');
+                        $scope.selectCou = $scope.county[0][0];
+                        pro = _text('province',area);
+                        cit=$scope.city[0][1];
+                        cou=$scope.county[0][1];
+                        break;
+                    case 'city':
+                        $scope.county=_linkage($scope.selectCit,area);
+                        $scope.selectCou = $scope.county[0][0];
+                        cit=_text('city',area);
+                        cou=$scope.county[0][1];
+                        break;
+                    case 'county':
+                        cou = _text('county',area);
+                }
+                function _linkage(num,area){return cityQuery(num,area,'linkage');}
+                function _text(ar,area){ var _this = document.getElementById(ar);return (ar==area) ? _this.options[_this.selectedIndex].innerText : _this.options[0].innerText;}
+
+                $scope.selectArea = [$scope.selectCou,pro+cit+cou];
+            };
+        });
+        //jQuery 三级联动。 html: select三个 id分别为 province city county
+        function linkageJquery(){
+            var proArr = cityQuery('','province','get'),
+                citArr = '',
+                couArr = '';
+            var $pro = $('#province'),
+                $cit = $('#city'),
+                $cou = $('#county');
+            var proStr = '',citStr = '',couStr = '';
+            function init(proKey,citKey,target){
+                proStr = citStr = couStr = '';
+                if(target!=='city') citArr = cityQuery(proKey,'province','linkage');
+                couArr = cityQuery(citKey,'city','linkage');
+                for(var i=0;i<proArr.length;i++){
+                    proStr += '<option value="'+proArr[i][0]+'">'+proArr[i][1]+'</option>';
+                }
+                for(i=0;i<citArr.length;i++){
+                    citStr += '<option value="'+citArr[i][0]+'">'+citArr[i][1]+'</option>';
+                }
+                for(i=0;i<couArr.length;i++){
+                    couStr += '<option value="'+couArr[i][0]+'">'+couArr[i][1]+'</option>';
+                }
+                if(target===''||target===null||typeof(target)==='undefined') $pro.html(proStr);
+                if(target!=='city') $cit.html(citStr);
+                $cou.html(couStr);
+            }
+            $pro.on('change',function(){
+                init($(this).val(),$(this).val()+'01','province');
+            });
+            $cit.on('change',function(){
+                init('',$(this).val(),'city');
+            });
+            init('11','1101');
+        }
+</script>
 </html>
